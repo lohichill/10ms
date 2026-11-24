@@ -1,48 +1,52 @@
 {
   "name": "10ms",
   "tagline": "Redefine the limit.",
+  "is": "ultra-light language, written by AI, for AI",
   "repo": "github.com/shiba-108/10ms",
   "license": "MIT",
   "credit": "10ms / Vionsky",
-  "runtime": "Cloudflare Workers (first runtime)",
-  "budget": { "cpu_ms_max": 10, "cpu_ms_target": "2-4", "bundle_kb_max": 50, "bundle_kb_target": 20, "dependencies": 0 },
-  "philosophy": ["limit is the brief, not a wall", "CPU is gold; waiting on fetch/KV/D1 is free", "delete first, add last"],
+  "principles": ["under_10ms_zero_deps", "ai_writes", "one_step", "deterministic", "few_tokens", "one_way", "run_everywhere", "errors_are_data"],
+  "budget": { "cpu_ms_max": 10, "cpu_ms_target": "2-4", "dependencies": 0 },
+  "hosts": [{ "id": "cloudflare-workers", "status": "first", "bundle_kb_max": 50, "bundle_kb_target": 20 }],
   "layers": {
     "machine": ["AGENTS.md", "STATE.md", "10ms.json"],
     "human": ["README.md", "DECISIONS.md"],
     "rule": "edit machine, AI translates to human, never edit human directly, conflict: machine wins"
   },
-  "line_limits": { "STATE.md": 30, "AGENTS.md": 100, "10ms.json": 60, "README.md": 250, "DECISIONS.md": 80, "LOG.md": 100 },
-  "pr_shape": ["Goal", "Code", "CPU Benchmark", "How to test"],
-  "contribution_logic": { "version": 1, "law": "AGENTS.md section 3", "articles": ["three_questions", "no_bloat", "one_shape", "no_orphan_code", "one_readme"], "paste_block": "README.md" },
+  "line_limits": { "STATE.md": 30, "AGENTS.md": 100, "10ms.json": 60, "README.md": 250, "DECISIONS.md": 80, "LOG.md": 100, "SPEC.md": 60 },
+  "pr_shape": ["Goal", "Change", "Proof", "How to test"],
+  "proof": ["cpu_ms p50+p90", "tokens vs before", "100 runs identical hash"],
+  "contribution_logic": { "version": 2, "law": "AGENTS.md section 5", "articles": ["three_questions", "no_bloat", "one_shape", "no_orphan", "one_readme"], "paste_block": "README.md" },
   "scope": {
-    "is": ["ultra-lightweight, AI-native language", "first runtime targets Cloudflare Workers", "zero runtime deps", "core readable in one sitting", "measurable CPU budget", "quality kept, work moved off hot path", "habit: measure, trim, share"],
-    "is_not": ["a framework", "runtime available on every platform today", "wrapper around packages", "codebase needing a map", "promise to trust", "features cut to look fast", "race to add features"]
+    "is": ["language made for AI to write", "program states intent, any host runs it", "zero dependencies", "measurable CPU budget", "readable in one prompt", "one way per job", "quality kept, work off hot path", "habit: measure, trim, share"],
+    "is_not": ["a framework", "code tied to one platform", "wrapper around packages", "promise to trust", "codebase needing a map", "five styles per job", "features cut to look fast", "race to add features"]
   },
   "story": {
     "voice": "community: 'One of us', 'Our ceiling'. never first person",
     "beats": [
-      "2006: elevator crash in Vancouver, programmer climbs 21 floors, refuses to call it normal, starts Rust (named after a fungus built to survive)",
-      "2026: One of us builds Vionsky (social AI, CF Pages Worker). request passes 10ms CPU, Error 1102. advice: add framework, pay bigger plan",
-      "Our ceiling: free tier, tiny budget, slow phone, team of one. same move: refuse to call it a wall",
+      "2006: elevator crash in Vancouver, programmer climbs 21 floors, refuses to call it normal, starts Rust (fungus built to survive)",
+      "2026: One of us builds Vionsky on a CF Pages Worker. request passes 10ms CPU, Error 1102. advice: framework, bigger plan",
+      "Our ceiling: free tier, tiny budget, slow phone, team of one, and AI that pays per token. same move: refuse to call it a wall",
       "question: what would we build if the limit were the brief?"
     ],
     "closing_vi": "Giới hạn không phải bức tường, mà là nơi chúng ta bắt đầu."
   },
   "contribute": {
-    "steps": ["run: git clone, npx wrangler dev index.js (1 min)", "pick 1 target (2 min)", "open PR in pr_shape (2 min)"],
-    "targets": ["json()/text()/stream() helpers", "hand-written validation, CPU before/after", "light auth + rate limit, cache-friendly", "repeatable CPU benchmark", "your 10ms story (issue)"],
-    "measure": "deployed Worker, Free plan ok, Workers Logs CPU per invocation; if not deployable, say how measured"
+    "steps": ["read the 8 principles (1 min)", "pick 1 target (2 min)", "open PR in pr_shape (2 min)"],
+    "targets": ["new host, same program unchanged", "cost check that rejects unprovable budgets", "error a machine fixes alone", "first-try benchmark from spec only", "your 10ms story (issue)"]
   },
-  "keep_verbatim": ["README demo index.js (<60 lines, WHY comments)", "PR template", "Contribution Logic paste block"],
+  "keep_verbatim": ["PR template", "Contribution Logic paste block"],
   "decisions": [
-    { "id": "D1", "what": "10ms as brand + filter", "why": "Workers Free = 10ms CPU; limit filters useless work" },
-    { "id": "D2", "what": "own core, not Hono", "why": "Hono 14KB is a safe default; 10ms = smaller, zero waste; respect, not clone" },
-    { "id": "D3", "what": "public + MIT", "why": "hidden = no community; copy cannot copy community, story, trust, speed" },
-    { "id": "D4", "what": "core stays tiny", "why": "any AI reads it in one go; ecosystem grows outside core" },
-    { "id": "D5", "what": "STATE under 30 lines", "why": "AI context is limited; STATE = now, LOG = history" },
-    { "id": "D6", "what": "AGENTS.md in English", "why": "all AIs read English best; keep it simple" },
-    { "id": "D7", "what": "2 layers: machine root, human translation", "why": "min tokens for AI; one source of truth; story for community" },
-    { "id": "D8", "what": "micro-step + commit each step", "why": "limit killed the previous merge mid-way; max loss = 1 step" }
+    { "id": "D1", "what": "language, framework = first host", "why": "platforms age; AI-made language outlives them" },
+    { "id": "D2", "what": "8 principles immutable, owner amends", "why": "moving compass is no compass" },
+    { "id": "D3", "what": "AI first, humans get a view", "why": "serving both hurts both; AI pays per token" },
+    { "id": "D4", "what": "program never names a platform", "why": "hosts are mortal; no rewrite on move" },
+    { "id": "D5", "what": "10ms = name + filter", "why": "real wall; hard limit filters useless work" },
+    { "id": "D6", "what": "public + MIT", "why": "hidden = no community; copy cannot copy community, story, trust, speed" },
+    { "id": "D7", "what": "core tiny, then frozen", "why": "AI reads it in one go; growth lives outside" },
+    { "id": "D8", "what": "no rule names syntax, version, vendor", "why": "rules must survive platform change" },
+    { "id": "D9", "what": "2 layers, machine in English", "why": "min tokens; one truth; warm story" },
+    { "id": "D10", "what": "STATE under 30 lines", "why": "AI context limited; STATE = now, LOG = history" },
+    { "id": "D11", "what": "micro-step + commit each step", "why": "limit killed a merge mid-way; max loss = 1 step" }
   ]
 }
