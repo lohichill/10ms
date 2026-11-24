@@ -11,6 +11,7 @@ updated: 2026-11-24 | by: Hoa tiêu 10ms | rev: 5
 - Pivot v2 | 10ms = AI-native language. framework = first host. constitution P1-P8. 6 files rewritten timeless
 - T2 | machine layer -> README.md + DECISIONS.md
 - T3 | LOG.md created
+- SPEC.md | draft (T6 will finalize)
 - repo: github.com/shiba-108/10ms
 - 2-layer architecture (machine root, human translation)
 
