@@ -62,4 +62,6 @@ Eleven decisions, each in two lines. This page is a translation: to change a dec
   Why: Lõi chỉ thêm, không phá. Mỗi tầng đổi nhanh chậm khác nhau, câu nào hết đúng khi nền tảng biến mất thì không được vào luật.
 
 - **D21. Gương (Mirror).**
-  Why: Lệnh dịch bất kỳ chương trình ra tiếng người, chỉ đọc. Người đọc được là quà tặng, không phải mục tiêu; nguồn thật vẫn là bản AI viết. 
+  Why: Lệnh dịch bất kỳ chương trình ra tiếng người, chỉ đọc. Người đọc được là quà tặng, không phải mục tiêu; nguồn thật vẫn là bản AI viết.
+- **D22. Our clean, tested, under-10ms PRs may auto-merge; protected-file changes and others wait.**
+  Why: We squash-merge our own PR only when conflict-free, all tests pass, CPU is below 10ms, and none of SPEC.md, DECISIONS.md or ARCHITECTURE.md changed; every other PR stays ready for the owner's approval.
