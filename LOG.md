@@ -1,3 +1,2 @@
-2026-11-24 | Claude + Meta AI | merged 5 files v2 | cpu -
-2026-11-24 | Quản lý 10ms | marked T2/T3 Done in STATE.md | cpu -
-2026-11-24 | Quản lý 10ms | pivot to AI-native language; opened T6 spec issue | cpu -
+# LOG.md (1 line per session: date | agent | did | cpu. over 100 lines: summarize to 5, delete old)
+2026-11-24 | Hoa tiêu 10ms | pivot v2: 10ms = AI-native language, framework = first host; constitution P1-P8; 6 files rewritten timeless | cpu n/a
