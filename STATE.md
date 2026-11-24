@@ -5,7 +5,7 @@ updated: 2026-11-24 | by: Cue | rev: 9
 | id | task | owner | branch |
 |---|---|---|---|
 | T6 | One-page spec: the language, the only home of syntax, examples are tests | Cue | agent/cue/T6 |
-| T1 | Worker /echo validation, hit-log count, CPU test; awaiting owner review | Cue | fix/worker-echo-log |
+| T1 | Worker /echo validation, hit-log count, CPU test; PR #10 awaiting owner review | Cue | fix/worker-echo-log |
 
 ## Done
 - Pivot v2 | 10ms = AI-native language. framework = first host. constitution P1-P8. 6 files rewritten timeless
@@ -21,7 +21,7 @@ updated: 2026-11-24 | by: Cue | rev: 9
 - Pre-change token baseline unavailable (no earlier implementation); do not infer a before/after delta
 
 ## Next (proposed, lead confirms)
-- T1 -> owner review; do not merge until approved
+- PR #10 -> owner review; do not merge until approved
 - T7 | error catalog: every error is data with an exact fix (P8)
 - T8 | first-try benchmark: AI gets only the spec, measure programs correct on first attempt (P2, P5, P6)
 - T9 | determinism check: 100 runs, identical output hash (P4)
