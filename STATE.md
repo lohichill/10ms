@@ -1,23 +1,24 @@
 # STATE.md (under 30 lines. now only. history -> LOG.md)
-updated: 2026-11-24 | by: Quản lý 10ms | rev: 4
+updated: 2026-11-24 | by: Hoa tiêu 10ms | rev: 5
 
 ## Doing
 | id | task | owner | branch |
 |---|---|---|---|
-| T1 | Core v0.1: router + ctx + stream (src/index.ts, ~60 lines) | - | - |
+| T6 | One-page spec: the language, the only home of syntax, examples are tests | - | - |
+| T1 | Host: workers v0.1 (old core reframed as first host, implements T6) | - | - |
 
 ## Done
-- T2 | Translate machine layer -> README.md + DECISIONS.md
-- T3 | Create LOG.md (1 line per session)
-- Pivot | 10ms is an ultra-lightweight, AI-native language; Cloudflare Workers is its first runtime
+- Pivot v2 | 10ms = AI-native language. framework = first host. constitution P1-P8. 6 files rewritten timeless
+- T2 | machine layer -> README.md + DECISIONS.md
+- T3 | LOG.md created
 - repo: github.com/shiba-108/10ms
-- merged 4 old files -> 2-layer architecture (machine root, human translation)
-- machine layer v2: AGENTS.md, STATE.md, 10ms.json
+- 2-layer architecture (machine root, human translation)
 
 ## Blocked
 - none
 
-## Next
-- T1 (router + ctx + stream)
-- after T1 benchmark: record CPU in LOG.md
-- T6: one-page spec — differences from JS, one web example, one Worker example
+## Next (proposed, lead confirms)
+- T6 -> T1 -> record CPU in LOG.md
+- T7 | error catalog: every error is data with an exact fix (P8)
+- T8 | first-try benchmark: AI gets only the spec, measure programs correct on first attempt (P2, P5, P6)
+- T9 | determinism check: 100 runs, identical output hash (P4)
