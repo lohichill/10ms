@@ -159,7 +159,7 @@ function runOn(onNode, ctx) {
   // Kiểm need trước khi chạy body (D13)
   for (const s of onNode.body) {
     if (s.type !== 'Need') continue;
-    const r = lookupPath(ctx.body, s.path);
+    const r = lookupPath({ body: ctx.body }, s.path);
     if (!r.found) {
       throw d13(
         'type', s.line,

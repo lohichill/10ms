@@ -89,7 +89,8 @@ async function main() {
   {
     const res = await w.fetch(post('http://x/echo', {}));
     const j = await res.json();
-    assert(res.status === 400 && j.error === 'type', 'POST /echo thiếu msg → D13 error');
+    assert(res.status === 400 && j.error === 'type' && j.seed === 7,
+      'POST /echo thiếu msg → D13 error có seed');
     console.log('       body:', JSON.stringify(j));
   }
 
@@ -97,8 +98,10 @@ async function main() {
   {
     const res = await w.fetch(post('http://x/echo', { msg: 42 }));
     const j = await res.json();
-    assert(res.status === 400 && j.error === 'type' && /number/.test(j.fix || ''),
-      'POST /echo sai kiểu → D13 error');
+    const again = await (await w.fetch(post('http://x/echo', { msg: 42 }))).json();
+    assert(res.status === 400 && j.error === 'type' && j.seed === 7 &&
+      /number/.test(j.fix || '') && JSON.stringify(j) === JSON.stringify(again),
+      'POST /echo sai kiểu → D13 deterministic, có seed, fix nêu number');
   }
 
   // --- 4. GET /hits lần 1, 2, 3 ---
@@ -121,20 +124,21 @@ async function main() {
   {
     // warm-up
     for (let i = 0; i < 20; i++) await w.fetch(get('http://x/hits'));
-    const t0 = performance.now();
     const N = 100;
+    const cpuStart = process.cpuUsage();
     for (let i = 0; i < N; i++) await w.fetch(get('http://x/hits'));
-    const t1 = performance.now();
-    const avg = (t1 - t0) / N;
-    console.log('       CPU avg:', avg.toFixed(4), 'ms / request  (' + N + ' reqs in ' + (t1 - t0).toFixed(2) + ' ms)');
+    const cpu = process.cpuUsage(cpuStart);
+    const cpuMs = (cpu.user + cpu.system) / 1000;
+    const avg = cpuMs / N;
+    console.log('       CPU avg:', avg.toFixed(4), 'ms CPU / request  (' + N + ' reqs in ' + cpuMs.toFixed(2) + ' ms CPU)');
     assert(avg < 10, 'CPU avg < 10ms (' + avg.toFixed(4) + ' ms)');
   }
 
-  // --- 7. Log có 103 entry store.add (3 lần đầu + 100 lần CPU) ---
+  // --- 7. Log có 123 entry store.add (3 + 20 warm-up + 100 CPU = 123) ---
   {
     const snap = w.log.snapshot();
     const adds = snap.filter(e => e.kind === 'store.add').length;
-    assert(adds === 103, 'Log ghi đủ 103 lần store.add (thấy ' + adds + ')');
+    assert(adds === 123, 'Log ghi đủ 123 lần store.add (thấy ' + adds + ')');
   }
 
   // --- 8. Replay: cùng sổ + cùng input → cùng output (P4) ---
