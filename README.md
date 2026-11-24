@@ -2,11 +2,10 @@
 
 **Redefine the limit.**
 
-Every platform has a ceiling. Most of us pay to raise it, or walk away.
-10ms is the third way: an ultra-lightweight, AI-native language. Its first runtime
-targets Cloudflare Workers, under 10ms of CPU per request, with zero runtime dependencies.
+10ms is an ultra-light language made for AI to write.
+A program says what it should do. A host decides where it runs. From code to product is one step.
 
-[Run the demo](#the-demo) · [Contribute in 5 minutes](#contribute-in-5-minutes) · [Contribution Logic](#10ms-contribution-logic)
+[Principles](#the-eight-principles) · [Contribute in 5 minutes](#contribute-in-5-minutes) · [Contribution Logic](#10ms-contribution-logic)
 
 ---
 
@@ -20,24 +19,32 @@ He refused to call that normal. He started a new language, named after a fungus 
 That language is **Rust**.
 
 **2026: The wall.** One of us was building Vionsky, a social AI platform, on a Cloudflare Pages Worker.
-Then a request crossed 10ms of CPU. Past that line, it fails with Error 1102.
+Then a request crossed 10ms of CPU and died with Error 1102.
 The usual advice arrived on cue: add a framework, add a layer, pay for a bigger plan.
 
 **Our ceiling.** Everyone here knows a wall like this: a free tier, a tiny budget, a slow phone, a team of one.
-Rust turned a crashed elevator into a language. 10ms turns a CPU ceiling into a discipline.
+Now there is a new one: the AI that writes our code pays for every token and gets lost in ceremony.
+Rust turned a crashed elevator into a language. 10ms turns a ceiling into a discipline.
 Different decade. Different limit. Same move: refuse to call it a wall.
 
 > **What would we build if the limit were the brief?**
 
 ---
 
-## The Philosophy
+## The Eight Principles
 
-| Principle | What it means |
-|---|---|
-| **1. The limit is the brief.** | A constraint is a specification, not an excuse. Design for it from line one. |
-| **2. CPU is gold. Waiting is free.** | Only CPU time counts toward the 10ms. Waiting on `fetch`, KV or a database does not. |
-| **3. Delete first. Add last.** | The fastest code is the code that never runs. |
+Immutable. Every rule in this repo traces back to one of them.
+
+| # | Principle | In one line |
+|---|---|---|
+| 1 | Under 10ms | Under 10ms of CPU. Zero dependencies. |
+| 2 | Written by AI | Made for AI to write, not for people to read. |
+| 3 | One step | From code to product in one step. There is no step two. |
+| 4 | Deterministic | Same code, 100 runs, 100 identical results. |
+| 5 | Few words | The fewest tokens possible. No boilerplate. |
+| 6 | One way | One job, one way to write it. No ambiguity. |
+| 7 | Everywhere | One program runs on web, worker, app and infrastructure. |
+| 8 | Errors are data | Machines read errors. AI fixes them with no human translator. |
 
 ---
 
@@ -45,82 +52,23 @@ Different decade. Different limit. Same move: refuse to call it a wall.
 
 | 10ms is | 10ms is not |
 |---|---|
-| An ultra-lightweight, AI-native language | A framework |
-| A first runtime targeting Cloudflare Workers | A runtime available on every platform today |
-| Zero runtime dependencies | A wrapper around other packages |
-| A language core small enough to read in one sitting | A codebase that needs a map |
+| A language made for AI to write | A framework |
+| A program that states intent, on any host | Code tied to one platform |
+| Zero dependencies | A wrapper around other packages |
 | A CPU budget you can measure | A promise you have to trust |
+| Small enough to read in one prompt | A codebase that needs a map |
+| One way to write each thing | Five styles for the same job |
 | Quality kept, work moved off the hot path | Features cut to look fast |
 | A habit: measure, trim, share | A race to add features |
 
-10ms is the per-request CPU limit on the [Workers Free plan](https://developers.cloudflare.com/workers/platform/limits/).
-Our budget: under 10ms CPU (goal 2 to 4ms), under 50KB bundle (goal under 20KB), zero dependencies.
-
 ---
 
-## The Demo
+## Built to Last
 
-This JavaScript Worker is a reference for the first runtime, not 10ms Lang syntax. Issue T6 defines the language in a one-page spec. Under 60 lines: save as `index.js`, run `npx wrangler dev index.js --compatibility-date 2026-01-01`, then `curl localhost:8787/health`. Every comment says WHY.
-
-```js
-// index.js — a complete 10ms Worker. Copy it. Run it. Make it smaller.
-
-// WHY: built once per isolate, not once per request.
-const JSON_HEADERS = { 'content-type': 'application/json' }
-const encoder = new TextEncoder()
-
-// WHY: an object lookup costs less than regex matching or a router loop.
-const routes = {
-  'GET /health': () => new Response('ok'),
-  'POST /echo': echo,
-  'GET /stream': stream,
-}
-
-export default {
-  // WHY: the single entry point. Workers calls it once per request.
-  async fetch(req, env, ctx) {
-    // WHY: slicing a string is cheaper than new URL() when only the path matters.
-    const url = req.url
-    const start = url.indexOf('/', 8)
-    const end = url.indexOf('?', start)
-    const path = end === -1 ? url.slice(start) : url.slice(start, end)
-
-    // WHY: fail fast. Unknown routes should cost almost nothing.
-    const handler = routes[req.method + ' ' + path]
-    if (!handler) return new Response('Not Found', { status: 404 })
-
-    const res = await handler(req, env, ctx)
-
-    // WHY: work the response does not need runs after the response.
-    ctx.waitUntil(log(req.method, path, res.status))
-    return res
-  },
-}
-
-// WHY: proves a JSON body round-trips. Waiting on I/O is free; only CPU counts.
-async function echo(req) {
-  let body
-  try { body = await req.json() } catch { return new Response('Bad JSON', { status: 400 }) }
-  return new Response(JSON.stringify({ echo: body }), { headers: JSON_HEADERS })
-}
-
-// WHY: send chunks as they are ready. Never buffer what you can stream.
-function stream() {
-  let i = 0
-  const body = new ReadableStream({
-    pull(controller) {
-      controller.enqueue(encoder.encode(`chunk ${++i}\n`))
-      if (i === 3) controller.close()
-    },
-  })
-  return new Response(body, { headers: { 'content-type': 'text/plain' } })
-}
-
-// WHY: swap console.log for KV, D1 or analytics. The response never waits for it.
-async function log(method, path, status) {
-  console.log(JSON.stringify({ method, path, status }))
-}
-```
+- **Platforms die. The language does not.** Every platform is a host. A program never names one, so moving hosts never means a rewrite.
+- **The core freezes.** It grows only by addition and never breaks an old program. New things grow outside it.
+- **Nothing without a reason.** Every rule traces to one of the eight principles. No trace, no rule.
+- **Only lines that last.** If a sentence stops being true when today's platforms, vendors and models vanish, it does not belong in the rules.
 
 ---
 
@@ -128,93 +76,75 @@ async function log(method, path, status) {
 
 No permission needed. No meeting. No setup guide. Three steps.
 
-**1. Run it (1 min)**
-
-```bash
-git clone https://github.com/shiba-108/10ms && cd 10ms
-npx wrangler dev index.js --compatibility-date 2026-01-01
-```
-
-**2. Pick one target (2 min).** Change one thing. Take one from the table, or open an issue with your own.
+1. **Read (1 min).** The eight principles above. Nothing else is required.
+2. **Pick one target (2 min).** Change one thing. Take one from the table, or open an issue with your own.
+3. **Open a PR (2 min).** Paste this into the description and fill every section.
 
 | Target | Done when |
 |---|---|
-| `json()`, `text()`, `stream()` helpers | Each is tiny, benchmarked, dependency-free |
-| Hand-written validation | It replaces a schema library, with CPU measured before and after |
-| Light auth and rate limiting | Cache-friendly, with CPU measured |
-| A repeatable CPU benchmark | Anyone can run it and paste the numbers |
+| A new host | The same program runs on it, unchanged |
+| A cost check | It rejects a program that cannot prove its CPU budget |
+| An error that fixes itself | A machine reads it and applies the fix, no human |
+| A first-try benchmark | An AI gets only the spec; you measure how often its program works first time |
 | Your 10ms story | You open an issue: where did the wall hit you? |
-
-**3. Open a PR (2 min).** Paste this into the description and fill every section.
 
 ```markdown
 ### Goal
-One sentence: what gets faster, smaller or clearer?
-### Code
+One sentence. Which principle (1-8) does it serve?
+### Change
 What changed, and why it must exist.
-### CPU Benchmark
+### Proof
 | | Before | After |
 |---|---|---|
 | CPU ms (p50 / p90) | | |
-| Bundle KB | | |
+| Tokens to write the same program | | |
+| 100 runs, identical output hash | | |
 ### How to test
 Commands a stranger can paste.
 ```
-
-Measure CPU on a deployed Worker (the Workers Free plan is enough): enable Workers Logs and read CPU time from each invocation log.
-If you cannot deploy, say how you measured.
 
 ---
 
 ## 10ms Contribution Logic
 
 The constitution of 10ms. Short enough to memorize. Plain enough to paste into any AI.
-**Humans:** read it once. **AI (Claude, ChatGPT, Gemini, Grok, Meta AI, or any other):** paste the block below before asking for code.
+**Humans:** read it once. **AI (any model, any vendor):** paste the block below before asking for work.
 
 ```text
-10MS CONTRIBUTION LOGIC v1
-PURPOSE: an ultra-lightweight, AI-native language. First runtime: Cloudflare Workers. Under 10ms CPU per request, zero runtime dependencies, no loss of quality.
+10MS CONTRIBUTION LOGIC v2
+PURPOSE: an ultra-light language, written by AI, for AI. Under 10ms CPU, zero dependencies.
+CONSTITUTION (immutable, every rule traces to one):
+  P1 under 10ms CPU, zero dependencies     P2 written for AI, not for human readers
+  P3 code to product in one step           P4 deterministic: 100 runs, 100 identical results
+  P5 fewest tokens, no boilerplate         P6 one job, one way to write it
+  P7 runs everywhere: web, worker, app, infra
+  P8 errors are data; AI fixes them with no human translator
 
 ARTICLE 1. THREE QUESTIONS (answer in writing before any code)
   Q1. Does it increase CPU?
-  Q2. Does it increase the bundle?
-  Q3. If we remove it, does the app still run?
-  Q3 = yes: do not write it. Q1 or Q2 = yes: justify it with a benchmark.
+  Q2. Does it increase the tokens needed to write or read?
+  Q3. If we remove it, does the program still run?
+  Q3 = yes: do not write it. Q1 or Q2 = yes: justify it with proof.
 
 ARTICLE 2. NO BLOAT
-  - No dependency if it can be hand-written in under 20 lines.
-  - No feature without a before/after benchmark.
-  - Deleting code beats adding code.
+  - Zero dependencies, always.
+  - A second way to do what already has one way: rejected.
+  - The core only grows by addition, each with proof. Deleting beats adding.
 
-ARTICLE 3. ONE SHAPE (everyone in sync)
-  Every PR uses exactly this structure:
-    1. Goal           one sentence
-    2. Code           the change
-    3. CPU Benchmark  before and after, same input, p50 and p90 CPU ms
-    4. How to test    commands a stranger can paste
-  No benchmark, no merge.
+ARTICLE 3. ONE SHAPE
+  Every PR: 1. Goal (names its P)  2. Change  3. Proof  4. How to test
+  Proof = same input; CPU ms p50 and p90; tokens before and after; 100 runs with identical output hash.
+  No proof, no merge.
 
-ARTICLE 4. NO ORPHAN CODE
-  - Every function carries one comment: WHY it exists, not WHAT it does.
-  - Code with no reason gets deleted.
+ARTICLE 4. NO ORPHAN
+  Every function and rule carries one comment: WHY it exists and which P it serves. No reason, delete.
 
 ARTICLE 5. ONE README IS ENOUGH
-  - A newcomer who reads only this file can contribute.
-  - If code needs another document to be understood, simplify the code.
-  - Use web-standard APIs, short functions, early returns.
+  If it needs another document to be understood, simplify it.
 
 FOR AI AGENTS: reply with (1) answers to Q1 to Q3, (2) the smallest change that works,
-(3) the PR in the Article 3 shape. Never add a dependency. When unsure, delete.
+(3) the PR in the Article 3 shape. Never add a dependency. Never edit P1 to P8. When unsure, delete.
 ```
-
-| The pain | The rule that ends it |
-|---|---|
-| Confusing, hard to understand | Article 5: one README, plain code |
-| Verbose | Article 1, Q3: delete first |
-| Bloat and dependency creep | Article 2 |
-| Everyone writes their own way | Article 3: one PR shape |
-| Old code nobody dares to touch | Article 4: every function has a reason |
-| Newcomers do not know where to start | Article 5 and the 5-minute path |
 
 ---
 
