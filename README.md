@@ -3,8 +3,8 @@
 **Redefine the limit.**
 
 Every platform has a ceiling. Most of us pay to raise it, or walk away.
-10ms is the third way: a tiny, zero-dependency framework for Cloudflare Workers
-that runs in under 10ms of CPU, without losing quality.
+10ms is the third way: an ultra-lightweight, AI-native language. Its first runtime
+targets Cloudflare Workers, under 10ms of CPU per request, with zero runtime dependencies.
 
 [Run the demo](#the-demo) · [Contribute in 5 minutes](#contribute-in-5-minutes) · [Contribution Logic](#10ms-contribution-logic)
 
@@ -45,9 +45,10 @@ Different decade. Different limit. Same move: refuse to call it a wall.
 
 | 10ms is | 10ms is not |
 |---|---|
-| A tiny framework for Cloudflare Workers | A framework for every runtime |
+| An ultra-lightweight, AI-native language | A framework |
+| A first runtime targeting Cloudflare Workers | A runtime available on every platform today |
 | Zero runtime dependencies | A wrapper around other packages |
-| A core small enough to read in one sitting | A codebase that needs a map |
+| A language core small enough to read in one sitting | A codebase that needs a map |
 | A CPU budget you can measure | A promise you have to trust |
 | Quality kept, work moved off the hot path | Features cut to look fast |
 | A habit: measure, trim, share | A race to add features |
@@ -59,7 +60,7 @@ Our budget: under 10ms CPU (goal 2 to 4ms), under 50KB bundle (goal under 20KB),
 
 ## The Demo
 
-Under 60 lines. Save as `index.js`, run `npx wrangler dev index.js --compatibility-date 2026-01-01`, then `curl localhost:8787/health`. Every comment says WHY.
+This JavaScript Worker is a reference for the first runtime, not 10ms Lang syntax. Issue T6 defines the language in a one-page spec. Under 60 lines: save as `index.js`, run `npx wrangler dev index.js --compatibility-date 2026-01-01`, then `curl localhost:8787/health`. Every comment says WHY.
 
 ```js
 // index.js — a complete 10ms Worker. Copy it. Run it. Make it smaller.
@@ -172,7 +173,7 @@ The constitution of 10ms. Short enough to memorize. Plain enough to paste into a
 
 ```text
 10MS CONTRIBUTION LOGIC v1
-PURPOSE: a zero-dependency Cloudflare Workers framework. Under 10ms CPU per request, no loss of quality.
+PURPOSE: an ultra-lightweight, AI-native language. First runtime: Cloudflare Workers. Under 10ms CPU per request, zero runtime dependencies, no loss of quality.
 
 ARTICLE 1. THREE QUESTIONS (answer in writing before any code)
   Q1. Does it increase CPU?

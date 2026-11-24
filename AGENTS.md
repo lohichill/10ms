@@ -20,8 +20,8 @@ conflict: machine layer wins. always.
 - STATE vs git disagree: trust git, fix STATE first
 
 ## 2. PROJECT
-- what: zero-dependency framework, Cloudflare Workers / Pages Functions
-- goal: <10ms CPU per request, no quality loss
+- what: ultra-lightweight, AI-native language; first runtime targets Cloudflare Workers
+- goal: <10ms CPU per request, zero runtime dependencies, no quality loss
 - CPU counts. waiting on fetch/KV/D1 is free
 - philosophy: limit is the brief | CPU is gold | delete first, add last
 - budget: CPU <10ms (target 2-4) | bundle <50KB (target <20KB) | deps 0

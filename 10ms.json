@@ -4,7 +4,7 @@
   "repo": "github.com/shiba-108/10ms",
   "license": "MIT",
   "credit": "10ms / Vionsky",
-  "runtime": "Cloudflare Workers / Pages Functions",
+  "runtime": "Cloudflare Workers (first runtime)",
   "budget": { "cpu_ms_max": 10, "cpu_ms_target": "2-4", "bundle_kb_max": 50, "bundle_kb_target": 20, "dependencies": 0 },
   "philosophy": ["limit is the brief, not a wall", "CPU is gold; waiting on fetch/KV/D1 is free", "delete first, add last"],
   "layers": {
@@ -16,8 +16,8 @@
   "pr_shape": ["Goal", "Code", "CPU Benchmark", "How to test"],
   "contribution_logic": { "version": 1, "law": "AGENTS.md section 3", "articles": ["three_questions", "no_bloat", "one_shape", "no_orphan_code", "one_readme"], "paste_block": "README.md" },
   "scope": {
-    "is": ["tiny CF Workers framework", "zero runtime deps", "core readable in one sitting", "measurable CPU budget", "quality kept, work moved off hot path", "habit: measure, trim, share"],
-    "is_not": ["framework for every runtime", "wrapper around packages", "codebase needing a map", "promise to trust", "features cut to look fast", "race to add features"]
+    "is": ["ultra-lightweight, AI-native language", "first runtime targets Cloudflare Workers", "zero runtime deps", "core readable in one sitting", "measurable CPU budget", "quality kept, work moved off hot path", "habit: measure, trim, share"],
+    "is_not": ["a framework", "runtime available on every platform today", "wrapper around packages", "codebase needing a map", "promise to trust", "features cut to look fast", "race to add features"]
   },
   "story": {
     "voice": "community: 'One of us', 'Our ceiling'. never first person",
