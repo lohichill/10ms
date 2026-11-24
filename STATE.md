@@ -1,5 +1,5 @@
 # STATE.md (under 30 lines. now only. history -> LOG.md)
-updated: 2026-11-24 | by: Cue | rev: 6
+updated: 2026-11-24 | by: Cue | rev: 8
 
 ## Doing
 | id | task | owner | branch |
@@ -13,11 +13,12 @@ updated: 2026-11-24 | by: Cue | rev: 6
 - T3 | LOG.md created
 - SPEC.md | draft (T6 will finalize)
 - ARCHITECTURE.md | architecture map
+- T11 | core lexer/parser/cost/seal/type/mirror; 3 core tests and assertions pass; 100-run output hash stable; CPU p50 0.01445ms / p90 0.05780ms
 - repo: github.com/shiba-108/10ms
 - 2-layer architecture (machine root, human translation)
 
 ## Blocked
-- none
+- Pre-change token baseline unavailable (no earlier implementation); do not infer a before/after delta
 
 ## Next (proposed, lead confirms)
 - T6 -> T1 -> record CPU in LOG.md

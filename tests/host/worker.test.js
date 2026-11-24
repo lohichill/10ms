@@ -1,0 +1,198 @@
+// tests/host/worker.test.js
+// Chạy: node tests/host/worker.test.js
+// Lưu ý: parse.js chưa sinh node Worker → dựng Worker AST bằng tay theo SPEC.
+const { createWorker } = require('../../src/host/worker/index');
+
+// ---- Worker AST đúng SPEC ----
+// on POST /echo
+//   need body.msg text
+//   reply {echo: body.msg}
+// on GET /hits
+//   reply {hits: @store.add "hits" 1}
+// on every 1h
+//   @store.del "hits"
+const WORKER_AST = {
+  type: 'Program',
+  body: [
+    {
+      type: 'On', method: 'POST', path: '/echo', line: 1,
+      body: [
+        { type: 'Need', path: 'body.msg', ty: 'text', line: 2 },
+        {
+          type: 'Reply', line: 3,
+          value: {
+            type: 'Object',
+            entries: [{ key: 'echo', value: { type: 'Path', path: 'body.msg' } }],
+          },
+        },
+      ],
+    },
+    {
+      type: 'On', method: 'GET', path: '/hits', line: 5,
+      body: [
+        {
+          type: 'Reply', line: 6,
+          value: {
+            type: 'Object',
+            entries: [{
+              key: 'hits',
+              value: {
+                type: 'Effect', path: 'store.add',
+                args: [
+                  { type: 'String', value: 'hits' },
+                  { type: 'Number', value: 1 },
+                ],
+              },
+            }],
+          },
+        },
+      ],
+    },
+    {
+      type: 'On', every: '1h', line: 8,
+      body: [
+        {
+          type: 'EffectCall', path: 'store.del', line: 9,
+          args: [{ type: 'String', value: 'hits' }],
+        },
+      ],
+    },
+  ],
+};
+
+function post(url, body) {
+  return new Request(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+function get(url) { return new Request(url, { method: 'GET' }); }
+
+function assert(cond, msg) {
+  if (!cond) { console.error('FAIL:', msg); process.exitCode = 1; }
+  else console.log('OK  :', msg);
+}
+
+async function main() {
+  const w = createWorker({ ast: WORKER_AST, seed: 7 });
+
+  // --- 1. POST /echo đúng ---
+  {
+    const res = await w.fetch(post('http://x/echo', { msg: 'hello' }));
+    const j = await res.json();
+    assert(res.status === 200 && j.echo === 'hello', 'POST /echo → {"echo":"hello"}');
+    console.log('       body:', JSON.stringify(j));
+  }
+
+  // --- 2. POST /echo thiếu msg → D13 ---
+  {
+    const res = await w.fetch(post('http://x/echo', {}));
+    const j = await res.json();
+    assert(res.status === 400 && j.error === 'type', 'POST /echo thiếu msg → D13 error');
+    console.log('       body:', JSON.stringify(j));
+  }
+
+  // --- 3. POST /echo sai kiểu → D13 ---
+  {
+    const res = await w.fetch(post('http://x/echo', { msg: 42 }));
+    const j = await res.json();
+    assert(res.status === 400 && j.error === 'type' && /number/.test(j.fix || ''),
+      'POST /echo sai kiểu → D13 error');
+  }
+
+  // --- 4. GET /hits lần 1, 2, 3 ---
+  {
+    const j1 = await (await w.fetch(get('http://x/hits'))).json();
+    const j2 = await (await w.fetch(get('http://x/hits'))).json();
+    const j3 = await (await w.fetch(get('http://x/hits'))).json();
+    assert(j1.hits === 1 && j2.hits === 2 && j3.hits === 3,
+      'GET /hits tăng 1 → 2 → 3');
+    console.log('       hits:', j1.hits, j2.hits, j3.hits);
+  }
+
+  // --- 5. 404 ---
+  {
+    const res = await w.fetch(get('http://x/nope'));
+    assert(res.status === 404, 'GET /nope → 404');
+  }
+
+  // --- 6. CPU < 10ms cho 100 hit /hits ---
+  {
+    // warm-up
+    for (let i = 0; i < 20; i++) await w.fetch(get('http://x/hits'));
+    const t0 = performance.now();
+    const N = 100;
+    for (let i = 0; i < N; i++) await w.fetch(get('http://x/hits'));
+    const t1 = performance.now();
+    const avg = (t1 - t0) / N;
+    console.log('       CPU avg:', avg.toFixed(4), 'ms / request  (' + N + ' reqs in ' + (t1 - t0).toFixed(2) + ' ms)');
+    assert(avg < 10, 'CPU avg < 10ms (' + avg.toFixed(4) + ' ms)');
+  }
+
+  // --- 7. Log có 103 entry store.add (3 lần đầu + 100 lần CPU) ---
+  {
+    const snap = w.log.snapshot();
+    const adds = snap.filter(e => e.kind === 'store.add').length;
+    assert(adds === 103, 'Log ghi đủ 103 lần store.add (thấy ' + adds + ')');
+  }
+
+  // --- 8. Replay: cùng sổ + cùng input → cùng output (P4) ---
+  {
+    // replay 3 lần add đầu tiên
+    const first3 = w.log.snapshot().slice(0, 3);
+    const script = (drv) => [
+      drv.call('store.add', ['hits', 1]),
+      drv.call('store.add', ['hits', 1]),
+      drv.call('store.add', ['hits', 1]),
+    ];
+    // Nạp log mới để replay 3 entry khớp đầu
+    const log2 = require('../../src/host/worker/log').createLog();
+    for (const e of first3) log2.record(e.kind, e.args, e.result);
+    const r = log2.replay(script, 7);
+    assert(
+      r.result[0] === 1 && r.result[1] === 2 && r.result[2] === 3 && r.consumed === 3,
+      'Replay 3 entry đầu → [1,2,3], consumed=3'
+    );
+  }
+
+  // --- 9. scheduled() chạy `on every 1h` → del "hits" ---
+  {
+    const r = await w.scheduled({});
+    assert(r.length === 1 && r[0].every === '1h', 'scheduled() chạy đúng 1 handler every');
+    // store bị xoá → lần hits tiếp theo về 1
+    const j = await (await w.fetch(get('http://x/hits'))).json();
+    assert(j.hits === 1, 'Sau cron del → /hits reset về 1');
+  }
+
+  // --- 10. Page (Web) render qua parser thật, chỉ kiểm không 404 ---
+  {
+    const WEB_SRC = `page /
+  tasks = []
+  text = ""
+  input text
+  btn "Add"
+    tasks = tasks + [text]
+    text = ""
+  each tasks t
+    p t
+`;
+    const { lex } = require('../../src/core/lex');
+    const { parse } = require('../../src/core/parse');
+    const { tokens, seed } = lex(WEB_SRC);
+    const webAst = parse(tokens, seed);
+    const w2 = createWorker({ ast: webAst, seed });
+    const res = await w2.fetch(get('http://x/'));
+    const html = await res.text();
+    assert(res.status === 200 && /<input name="text"/.test(html) && /<button/.test(html),
+      'Page / render HTML có <input> và <button>');
+    console.log('       html head:', html.slice(0, 100) + '…');
+  }
+}
+
+main().then(() => {
+  console.log('\n' + (process.exitCode ? 'FAILED' : 'ALL PASSED'));
+}).catch(e => {
+  console.error('FATAL:', e);
+  process.exit(1);
+});
