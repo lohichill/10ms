@@ -62,4 +62,4 @@ Eleven decisions, each in two lines. This page is a translation: to change a dec
   Why: Lõi chỉ thêm, không phá. Mỗi tầng đổi nhanh chậm khác nhau, câu nào hết đúng khi nền tảng biến mất thì không được vào luật.
 
 - **D21. Gương (Mirror).**
-  Why: Lệnh dịch bất kỳ chương trình ra tiếng người, chỉ đọc. Người đọc được là quà tặng, không phải mục tiêu; nguồn thật vẫn là bản AI viết.
+  Why: Lệnh dịch bất kỳ chương trình ra tiếng người, chỉ đọc. Người đọc được là quà tặng, không phải mục tiêu; nguồn thật vẫn là bản AI viết. 
