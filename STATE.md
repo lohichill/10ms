@@ -6,6 +6,7 @@ updated: 2026-11-24 | by: Cue | rev: 9
 |---|---|---|---|
 | T6 | One-page spec: the language, the only home of syntax, examples are tests | Cue | agent/cue/T6 |
 | T1 | Worker /echo validation, hit-log count, CPU test; PR #10 awaiting owner review | Cue | fix/worker-echo-log |
+| T4 | Repeatable Node + Wrangler CPU benchmark; fixed seed, overhead, 5-run spread | Manus | agent/manus/T4 |
 
 ## Done
 - Pivot v2 | 10ms = AI-native language. framework = first host. constitution P1-P8. 6 files rewritten timeless
