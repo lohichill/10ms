@@ -4,7 +4,7 @@ updated: 2026-11-24 | by: Hoa tiêu 10ms | rev: 5
 ## Doing
 | id | task | owner | branch |
 |---|---|---|---|
-| T6 | One-page spec: the language, the only home of syntax, examples are tests | - | - |
+| T6 | One-page spec: the language, the only home of syntax, examples are tests | Cue | agent/cue/T6 |
 | T1 | Host: workers v0.1 (old core reframed as first host, implements T6) | - | - |
 
 ## Done
