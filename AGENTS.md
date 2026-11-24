@@ -89,6 +89,7 @@ roles: lead (1) = review PRs, record to machine layer, translate to human. dev (
 - never 2 agents on 1 file at once. need it: wait or ask lead to split
 - done: open own PR in A3 shape. dev edits only code + own task line in STATE.md
 - lead: merge -> update machine layer -> translate to human -> move task to Done/LOG
+- auto-merge: squash our PR only with no conflicts, all tests PASS, CPU <10ms, and no SPEC.md/DECISIONS.md/ARCHITECTURE.md changes; all others stay ready for owner approval.
 
 ## 9. FILES (1 file = 1 job, no repeated ideas)
 - `STATE.md` <=30: doing/done/blocked; `AGENTS.md` <=100: law; `10ms.json` <=60: constants/canon.

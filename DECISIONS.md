@@ -1,6 +1,6 @@
 # Why We Did It This Way
 
-Twenty-one decisions, each in two lines. This page is a translation: to change a decision, change it at the machine layer first.
+Twenty-two decisions, each in two lines. This page is a translation: to change a decision, change it at the machine layer first.
 
 - **D1. 10ms is a language. The framework is only its first host.**
   Why: Platforms and frameworks age. A language made for AI can outlive both.
@@ -63,3 +63,5 @@ Twenty-one decisions, each in two lines. This page is a translation: to change a
 
 - **D21. Mirror.**
   Why: A read-only command translates any program for people. Readability is a gift, while the AI-written source remains the truth.
+- **D22. Our clean, tested, under-10ms PRs may auto-merge; protected-file changes and others wait.**
+  Why: We squash-merge our own PR only when conflict-free, all tests pass, CPU is below 10ms, and none of SPEC.md, DECISIONS.md or ARCHITECTURE.md changed; every other PR stays ready for the owner's approval.
