@@ -1,0 +1,10 @@
+{
+  "name": "10ms-worker-issue11",
+  "main": "src/host/worker/cloudflare.mjs",
+  "compatibility_date": "2026-11-24",
+  "workers_dev": true,
+  "minify": true,
+  "triggers": {
+    "crons": ["0 * * * *"]
+  }
+}

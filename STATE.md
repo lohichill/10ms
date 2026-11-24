@@ -1,12 +1,12 @@
 # STATE.md (under 30 lines. now only. history -> LOG.md)
-updated: 2026-11-24 | by: Cue | rev: 9
+updated: 2026-11-24 | by: Trâu | rev: 10
 
 ## Doing
 | id | task | owner | branch |
 |---|---|---|---|
 | T6 | One-page spec: the language, the only home of syntax, examples are tests | Cue | agent/cue/T6 |
 | T1 | Worker /echo validation, hit-log count, CPU test; PR #10 awaiting owner review | Cue | fix/worker-echo-log |
-| T13 | Deploy existing Worker host to Cloudflare with Wrangler config and CPU proof | Trâu | agent/trau/T13 |
+| T13 | Worker live; tests pass; CPU p50 0.101ms/p90 0.230ms | Trâu | agent/trau/T13 |
 ## Done
 - Pivot v2 | 10ms = AI-native language. framework = first host. constitution P1-P8. 6 files rewritten timeless
 - T2 | machine layer -> README.md + DECISIONS.md
