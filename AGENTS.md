@@ -10,6 +10,13 @@ conflict: machine layer wins. always.
 - flow: edit machine -> commit -> AI translates to human -> commit
 - layers disagree: machine is right, rewrite human
 - human voice: community ("One of us", "Our ceiling"), never "I"
+- layers: core parses/checks purely; host/worker executes AST + effects; mirror renders AST read-only.
+- dependencies: host and mirror -> core only; core has no I/O/host awareness; host never parses.
+- flow: .10ms -> lex -> parse -> canon -> type -> cost -> seal -> AST+seal -> Worker/replay | mirror.
+- paths: src/core, src/host/worker, src/mirror; tests/core, host, first-try, fixtures; no new dirs without replacing one.
+- invariants: loops bounded; canonical form unique; core frozen (add-only); effects stay in host.
+- determinism: same source + same @ ledger = same output (P4); host swap needs no program rewrite (P7).
+- merge gates: tests/examples pass; cost proves <=10ms and CPU p50/p90 measured; seal matches source.
 
 ## 1. READ ORDER (cheapest first)
 1. STATE.md 2. `git log -5` 3. AGENTS.md 4. 10ms.json
@@ -21,7 +28,6 @@ conflict: machine layer wins. always.
 - a program states intent. a host decides where and how it runs
 - hosts are mortal (list: 10ms.json). the language is not
 - MIT, public. credit "10ms / Vionsky". copy = ad, not enemy. win by faster, clearer, more trusted
-- Worker contribution reference: first host Cloudflare Workers; fork -> separate branch -> local tests; CPU: 100-200 warm-up requests, median of 5 runs, target <10ms/request; PR fields: Goal - Code - CPU Benchmark - How to test.
 
 ## 3. CONSTITUTION (immutable)
 P1 under 10ms CPU. zero dependencies
@@ -85,16 +91,9 @@ roles: lead (1) = review PRs, record to machine layer, translate to human. dev (
 - lead: merge -> update machine layer -> translate to human -> move task to Done/LOG
 
 ## 9. FILES (1 file = 1 job, no repeated ideas)
-| file | max lines | job | forbidden |
-|---|---|---|---|
-| STATE.md | 30 | doing / done / blocked | history, story |
-| AGENTS.md | 100 | law | story |
-| 10ms.json | 60 | constants, canon | prose |
-| README.md | 250 | story, principles, contribute | detailed law, syntax |
-| DECISIONS.md | 80 | why | rules |
-| LOG.md | 100 | 1 line per session (date, agent, did, cpu) | - |
-| SPEC.md (planned T6) | 60 | the language, one page, only home of syntax | story |
-- LOG.md > 100 lines: summarize to 5 lines, delete old, new LOG.md starts with the 5 lines
+- `STATE.md` <=30: doing/done/blocked; `AGENTS.md` <=100: law; `10ms.json` <=60: constants/canon.
+- `README.md` <=250: story/principles/contribute, no detailed law/syntax; `DECISIONS.md` <=80: why, not rules.
+- `LOG.md` <=100: one line/session; overflow: summarize to 5, replace. `SPEC.md` <=60: language/syntax only; `ARCHITECTURE.md` removed (map/gates in §0).
 
 ## 10. HANDOVER (before you stop)
 1. STATE.md: doing / done / blocked 2. LOG.md: +1 line 3. commit + push. uncommitted = lost
