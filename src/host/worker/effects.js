@@ -1,5 +1,5 @@
 // src/host/worker/effects.js
-// 10ms host · effects: CHỖ DUY NHẤT chạm ra ngoài. @store.add/del/get/set, @time.now, @rand.int.
+// 10ms host · effects: CHỖ DUY NHẤT chạm ra ngoài. @store.add/del/get/set, @net.fetch, @time.now, @rand.int.
 // Lõi không gọi trực tiếp — mọi lần chạm đi qua log (D15). P1 · P4.
 
 function d13(expected, fix, seed) {
@@ -10,12 +10,17 @@ function d13(expected, fix, seed) {
 
 const ALLOWED = {
   store: ['add', 'del', 'get', 'set'],
+  net: ['fetch'],
   time: ['now'],
   rand: ['int'],
 };
 
-function createEffects(log, store, seed = 0) {
+function createEffects(log, store, seed = 0, fetchImpl) {
   const box = store instanceof Map ? store : new Map();
+  const hasInjectedFetch = fetchImpl !== undefined;
+  const request = hasInjectedFetch
+    ? (typeof fetchImpl === 'function' ? fetchImpl : null)
+    : (typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null);
   // Keep random output stable for the same seed without adding entropy or dependencies (P1, P4).
   let randState = Number(seed) >>> 0;
 
@@ -43,6 +48,46 @@ function createEffects(log, store, seed = 0) {
     box.set(key, value);
     log.record('store.set', [key, value], value);
     return value;
+  }
+
+  // Capture the complete response as plain data so D15 replay never consumes a live stream again (P4, D15).
+  async function netFetch(...args) {
+    if (args.length < 1 || args.length > 2 || typeof args[0] !== 'string' ||
+        !args[0] || (args.length === 2 &&
+        (!args[1] || typeof args[1] !== 'object' || Array.isArray(args[1])))) {
+      throw d13('a URL text and optional request options object for @net.fetch',
+        '@net.fetch "url" [options]', seed);
+    }
+
+    let result;
+    try {
+      if (!request) throw new Error('runtime fetch is unavailable');
+      const response = args.length === 1
+        ? await request(args[0])
+        : await request(args[0], args[1]);
+      const headers = {};
+      const entries = Array.from(response.headers.entries()).sort((a, b) =>
+        a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+      for (const [name, value] of entries) headers[name] = value;
+      result = {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText,
+        headers,
+        body: await response.text(),
+      };
+    } catch (error) {
+      result = {
+        status: null,
+        ok: false,
+        statusText: '',
+        headers: {},
+        body: '',
+        error: String(error && error.message ? error.message : error),
+      };
+    }
+    log.record('net.fetch', args, result);
+    return result;
   }
 
   // Capture wall-clock output once so D15 replay never reads a new time (P4).
@@ -101,12 +146,12 @@ function createEffects(log, store, seed = 0) {
     if (!Array.isArray(args)) {
       throw d13('args as array for @' + path, '@' + path + ' [arg1, arg2]', seed);
     }
-    return { add, del, get, set, now, int }[fn](...args);
+    return { add, del, get, set, fetch: netFetch, now, int }[fn](...args);
   }
 
   function snapshotStore() { return new Map(box); }
 
-  return { call, add, del, get, set, now, int, snapshotStore };
+  return { call, add, del, get, set, netFetch, now, int, snapshotStore };
 }
 
 module.exports = { createEffects };

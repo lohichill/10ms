@@ -6,7 +6,7 @@ updated: 2026-11-25 | by: Cue | rev: 13
 | T4 | Repeatable CPU benchmark; PR #14 | open |
 | T12 | Conditional PR auto-merge policy; PR #12 | open |
 | T21 | Measure Worker bundle and rendered Web output; target 20 KiB, max 50 KiB | PR #31 open |
-| FX-SET | Runtime effects: @store.set; issue #26 | open |
+| FX-SET/NET | Finish issue #26 runtime effects: @net.fetch; PR #44 | open |
 | T18 | Browser Web runtime: Page/Input/Btn/P/Each | PR #32 open |
 | T19 | Ship pipeline; PR #33 | open |
 ## Done
@@ -19,7 +19,6 @@ updated: 2026-11-25 | by: Cue | rev: 13
 - repo: github.com/shiba-108/10ms
 - 2-layer machine root / human translation; core pure, host executes AST, mirror renders
 ## Blocked
-- SPEC: 7 effects; runtime: 3 (@store.get/add/del). Missing @store.set/@net.fetch/@time.now/@rand.int.
 - Pre-change token baseline unavailable; do not infer before/after delta
 - T13 | dropped; owner left; code in PR #15 superseded.
 ## Next (proposed, lead confirms)
