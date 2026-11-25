@@ -33,6 +33,29 @@ function lookupPath(root, path) {
   return { found: true, value: cur };
 }
 
+// Preserve the synchronous hot path and compose only values that contain an async effect (P1, P4).
+function maybeAsync(values, apply) {
+  if (values.some(value => value && typeof value.then === 'function')) {
+    return Promise.all(values).then(apply);
+  }
+  return apply(values);
+}
+
+// Evaluate child expressions in source order so external effects cannot reorder their D15 entries (P4, D15).
+function evalMany(nodes, ctx) {
+  const values = [];
+  let pending = null;
+  for (const node of nodes) {
+    if (pending) pending = pending.then(() => evalExpr(node, ctx)).then(value => { values.push(value); });
+    else {
+      const value = evalExpr(node, ctx);
+      if (value && typeof value.then === 'function') pending = Promise.resolve(value).then(result => { values.push(result); });
+      else values.push(value);
+    }
+  }
+  return pending ? pending.then(() => values) : values;
+}
+
 // Keep dynamic host loops within the same bound used by the core proof (P1, D14).
 function checkEachLimit(list, s, ctx) {
   if (list.length > MAX_ITER) {
@@ -55,24 +78,33 @@ function evalExpr(n, ctx) {
       if (!r.found) return null;
       return r.value;
     }
-    case 'Array':  return n.items.map(x => evalExpr(x, ctx));
+    case 'Array': {
+      const values = evalMany(n.items, ctx);
+      return maybeAsync([values], ([resolved]) => resolved);
+    }
     case 'Object': {
-      const o = {};
-      for (const { key, value } of n.entries) o[key] = evalExpr(value, ctx);
-      return o;
+      const values = evalMany(n.entries.map(entry => entry.value), ctx);
+      return maybeAsync([values], ([resolved]) => {
+        const o = {};
+        for (let i = 0; i < n.entries.length; i++) o[n.entries[i].key] = resolved[i];
+        return o;
+      });
     }
     case 'Binary': {
       const l = evalExpr(n.left, ctx);
-      const r = evalExpr(n.right, ctx);
-      if (n.op === '+') {
-        if (Array.isArray(l) && Array.isArray(r)) return l.concat(r);
-        if (typeof l === 'number' && typeof r === 'number') return l + r;
-        return String(l) + String(r);
-      }
-      return null;
+      return maybeAsync([l], ([left]) => maybeAsync([evalExpr(n.right, ctx)], ([right]) => {
+        if (n.op === '+') {
+          if (Array.isArray(left) && Array.isArray(right)) return left.concat(right);
+          if (typeof left === 'number' && typeof right === 'number') return left + right;
+          return String(left) + String(right);
+        }
+        return null;
+      }));
     }
-    case 'Effect':
-      return ctx.fx.call(n.path, (n.args || []).map(x => evalExpr(x, ctx)));
+    case 'Effect': {
+      const args = evalMany(n.args || [], ctx);
+      return maybeAsync([args], ([resolved]) => ctx.fx.call(n.path, resolved));
+    }
     default:
       return null;
   }
@@ -86,30 +118,19 @@ function execStmt(s, ctx) {
       return;
 
     case 'Reply':
-      ctx.response = evalExpr(s.value, ctx);
-      return;
+      return maybeAsync([evalExpr(s.value, ctx)], ([value]) => { ctx.response = value; });
 
-    case 'EffectCall':
-      ctx.fx.call(s.path, (s.args || []).map(x => evalExpr(x, ctx)));
-      return;
+    case 'EffectCall': {
+      const args = evalMany(s.args || [], ctx);
+      return maybeAsync([args], ([resolved]) => ctx.fx.call(s.path, resolved));
+    }
 
     case 'Assign':
-      ctx.env.set(s.name, evalExpr(s.value, ctx));
-      return;
+      return maybeAsync([evalExpr(s.value, ctx)], ([value]) => ctx.env.set(s.name, value));
 
     case 'Each': {
       const list = evalExpr(s.list, ctx);
-      if (!Array.isArray(list)) return;
-      checkEachLimit(list, s, ctx);
-      const saved = s.var;
-      const prev = ctx.env.has(saved) ? ctx.env.get(saved) : undefined;
-      for (const item of list) {
-        ctx.env.set(saved, item);
-        for (const inner of s.body) execStmt(inner, ctx);
-      }
-      if (prev === undefined) ctx.env.delete(saved);
-      else ctx.env.set(saved, prev);
-      return;
+      return maybeAsync([list], ([resolved]) => execEach(s, resolved, ctx));
     }
 
     case 'Input':
@@ -122,6 +143,46 @@ function execStmt(s, ctx) {
     default:
       return;
   }
+}
+
+// ---- Web render (Page → HTML) ----
+// Await each loop body only when it returns a Promise, preserving source order (P1, P4).
+function execEach(s, list, ctx) {
+  if (!Array.isArray(list)) return;
+  checkEachLimit(list, s, ctx);
+  const saved = s.var;
+  const prev = ctx.env.has(saved) ? ctx.env.get(saved) : undefined;
+  const restore = () => {
+    if (prev === undefined) ctx.env.delete(saved);
+    else ctx.env.set(saved, prev);
+  };
+  let pending = null;
+  for (const item of list) {
+    const runItem = () => {
+      ctx.env.set(saved, item);
+      return execStatements(s.body, ctx);
+    };
+    if (pending) pending = pending.then(runItem);
+    else {
+      const result = runItem();
+      if (result && typeof result.then === 'function') pending = Promise.resolve(result);
+    }
+  }
+  if (pending) return pending.then(restore, error => { restore(); throw error; });
+  restore();
+}
+
+// Serialize statements without async overhead when every effect is synchronous (P1, D15).
+function execStatements(statements, ctx) {
+  let pending = null;
+  for (const statement of statements) {
+    if (pending) pending = pending.then(() => execStmt(statement, ctx));
+    else {
+      const result = execStmt(statement, ctx);
+      if (result && typeof result.then === 'function') pending = Promise.resolve(result);
+    }
+  }
+  return pending;
 }
 
 // ---- Web render (Page → HTML) ----
@@ -203,8 +264,8 @@ function runOn(onNode, ctx) {
       );
     }
   }
-  for (const s of onNode.body) execStmt(s, ctx);
-  return ctx.response;
+  const pending = execStatements(onNode.body, ctx);
+  return pending ? pending.then(() => ctx.response) : ctx.response;
 }
 
-module.exports = { evalExpr, execStmt, renderPage, renderStmt, runOn, runtimeType, lookupPath };
+module.exports = { evalExpr, execStmt, execStatements, renderPage, renderStmt, runOn, runtimeType, lookupPath };

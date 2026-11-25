@@ -5,7 +5,7 @@
 
 const { createLog }     = require('./log');
 const { createEffects } = require('./effects');
-const { runOn, renderPage, execStmt } = require('./run');
+const { runOn, renderPage, execStatements } = require('./run');
 
 function jsonResponse(obj, status) {
   return new Response(JSON.stringify(obj), {
@@ -29,9 +29,9 @@ function collectInputs(statements, names) {
   }
 }
 
-function createWorker({ ast, seed, store }) {
+function createWorker({ ast, seed, store, fetchImpl }) {
   const log = createLog();
-  const fx  = createEffects(log, store instanceof Map ? store : new Map(), seed || 0);
+  const fx  = createEffects(log, store instanceof Map ? store : new Map(), seed || 0, fetchImpl);
   const S   = seed || 0;
 
   function findRoute(method, path) {
@@ -100,7 +100,7 @@ function createWorker({ ast, seed, store }) {
     }
 
     ctx.env = button.env;
-    for (const statement of button.body) execStmt(statement, ctx);
+    await execStatements(button.body, ctx);
     return htmlResponse(renderPage(page, ctx));
   }
 
@@ -129,7 +129,7 @@ function createWorker({ ast, seed, store }) {
         fx, log, body, response: null, seed: S,
       };
       try {
-        const result = runOn(on, ctx);
+        const result = await runOn(on, ctx);
         return jsonResponse(result);
       } catch (e) {
         if (e && e.detail) return jsonResponse(e.detail, 400);
@@ -152,7 +152,7 @@ function createWorker({ ast, seed, store }) {
     for (const n of ast.body) {
       if (n.type === 'On' && n.every) {
         const ctx = { env: new Map(), fx, log, body: {}, response: null, seed: S };
-        for (const s of n.body) execStmt(s, ctx);
+        await execStatements(n.body, ctx);
         results.push({ every: n.every, ok: true });
       }
     }

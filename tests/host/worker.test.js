@@ -108,6 +108,35 @@ const TIME_RAND_AST = {
   }],
 };
 
+const NET_FETCH_URL = 'https://api.example.test/items';
+const NET_FETCH_AST = {
+  type: 'Program',
+  body: [{
+    type: 'On', method: 'GET', path: '/net', body: [
+      {
+        type: 'Assign', name: 'response', value: {
+          type: 'Effect', path: 'net.fetch', args: [
+            { type: 'String', value: NET_FETCH_URL },
+            { type: 'Object', entries: [{ key: 'method', value: { type: 'String', value: 'POST' } }] },
+          ],
+        },
+      },
+      {
+        type: 'Reply', value: {
+          type: 'Object', entries: [
+            { key: 'status', value: { type: 'Path', path: 'response.status' } },
+            { key: 'ok', value: { type: 'Path', path: 'response.ok' } },
+            { key: 'statusText', value: { type: 'Path', path: 'response.statusText' } },
+            { key: 'headers', value: { type: 'Path', path: 'response.headers' } },
+            { key: 'body', value: { type: 'Path', path: 'response.body' } },
+            { key: 'error', value: { type: 'Path', path: 'response.error' } },
+          ],
+        },
+      },
+    ],
+  }],
+};
+
 function post(url, body) {
   return new Request(url, {
     method: 'POST',
@@ -258,7 +287,7 @@ async function main() {
   {
     const { runOn } = require('../../src/host/worker/run');
     const ctx = { env: new Map(), body: {}, seed: 7, response: null };
-    runOn({ body: [{ type: 'Assign', name: 'count', value: { type: 'Number', value: 2 } }] }, ctx);
+    await runOn({ body: [{ type: 'Assign', name: 'count', value: { type: 'Number', value: 2 } }] }, ctx);
     assert(ctx.env.get('count') === 2, 'Worker name = expr runs through Assign in execStmt');
     const workerExample = `on POST /echo
   need body.msg text
@@ -398,6 +427,125 @@ on every 1h
     console.log('       @time.now + @rand.int CPU p50/p90:', p50.toFixed(4), '/', p90.toFixed(4),
       'ms/request (100 batches × ' + N + ' requests; process.cpuUsage user+system)');
     assert(p50 < 10 && p90 < 10, '@time.now + @rand.int CPU p50 and p90 < 10ms/request');
+  }
+
+  // --- 17. @net.fetch uses only injected mocks; log and replay every response (P4, D15) ---
+  {
+    const originalFetch = globalThis.fetch;
+    let unmockedFetchCalls = 0;
+    globalThis.fetch = async () => {
+      unmockedFetchCalls++;
+      throw new Error('real network forbidden in tests');
+    };
+    try {
+      const calls = [];
+      const mockFetch = async (url, init) => {
+        calls.push({ url, init });
+        return new Response('{"item":"ok"}', {
+          status: 201,
+          statusText: 'Created',
+          headers: { 'content-type': 'application/json', 'x-test': 'mocked' },
+        });
+      };
+      const wNet = createWorker({ ast: NET_FETCH_AST, seed: 7, fetchImpl: mockFetch });
+      const body = await (await wNet.fetch(get('http://x/net'))).json();
+      const entry = wNet.log.snapshot()[0];
+      assert(body.status === 201 && body.ok && body.statusText === 'Created' &&
+        body.body === '{"item":"ok"}' && body.headers['x-test'] === 'mocked',
+        '@net.fetch returns a JSON-safe response envelope from the injected mock');
+      assert(calls.length === 1 && calls[0].url === NET_FETCH_URL &&
+        JSON.stringify(calls[0].init) === '{"method":"POST"}' &&
+        entry.kind === 'net.fetch' && JSON.stringify(entry.args) ===
+          JSON.stringify([NET_FETCH_URL, { method: 'POST' }]) &&
+        entry.result.status === 201 && entry.result.body === '{"item":"ok"}',
+        '@net.fetch records request inputs and normalized response output');
+
+      const replayLog = createLog();
+      replayLog.record(entry.kind, entry.args, entry.result);
+      const replay = replayLog.replay(driver => driver.call('net.fetch',
+        [NET_FETCH_URL, { method: 'POST' }]), 7);
+      assert(JSON.stringify(replay.result) === JSON.stringify(entry.result) &&
+        replay.consumed === 1 && calls.length === 1,
+        'D15 replay returns the logged network output without issuing another request');
+
+      // Reverse completion latency to prove awaited effects preserve source order (P4, D15).
+      const firstUrl = 'https://api.example.test/first';
+      const secondUrl = 'https://api.example.test/second';
+      const started = [];
+      const orderedWorker = createWorker({
+        ast: { type: 'Program', body: [{ type: 'On', method: 'GET', path: '/ordered', body: [{
+          type: 'Reply', value: { type: 'Array', items: [firstUrl, secondUrl].map(url => ({
+            type: 'Effect', path: 'net.fetch', args: [{ type: 'String', value: url }],
+          })) },
+        }] }] },
+        fetchImpl: async url => {
+          started.push(url);
+          await new Promise(resolve => setTimeout(resolve, url === firstUrl ? 5 : 0));
+          return new Response(url);
+        },
+      });
+      const orderedBody = await (await orderedWorker.fetch(get('http://x/ordered'))).json();
+      const loggedOrder = orderedWorker.log.snapshot().map(item => item.args[0]);
+      assert(JSON.stringify(started) === JSON.stringify([firstUrl, secondUrl]) &&
+        JSON.stringify(loggedOrder) === JSON.stringify([firstUrl, secondUrl]) &&
+        JSON.stringify(orderedBody.map(item => item.body)) === JSON.stringify([firstUrl, secondUrl]),
+        'nested network effects run and log in source order');
+
+      const failedWorker = createWorker({ ast: NET_FETCH_AST, seed: 7,
+        fetchImpl: async () => { throw new Error('mock offline'); } });
+      const failedBody = await (await failedWorker.fetch(get('http://x/net'))).json();
+      const failedEntry = failedWorker.log.snapshot()[0];
+      const failedReplayLog = createLog();
+      failedReplayLog.record(failedEntry.kind, failedEntry.args, failedEntry.result);
+      const failedReplay = failedReplayLog.replay(driver => driver.call('net.fetch',
+        [NET_FETCH_URL, { method: 'POST' }]), 7);
+      assert(failedBody.error === 'mock offline' && failedEntry.result.error === 'mock offline' &&
+        JSON.stringify(failedReplay.result) === JSON.stringify(failedEntry.result),
+        'network errors are normalized, logged, and replayable too');
+
+      const hashes = [];
+      for (let i = 0; i < 100; i++) {
+        const worker = createWorker({ ast: NET_FETCH_AST, seed: 7,
+          fetchImpl: async () => new Response('{"item":"ok"}', {
+            status: 201,
+            statusText: 'Created',
+            headers: { 'content-type': 'application/json', 'x-test': 'mocked' },
+          }) });
+        const result = await (await worker.fetch(get('http://x/net'))).json();
+        hashes.push(createHash('sha256').update(JSON.stringify({
+          body: result, log: worker.log.snapshot(),
+        })).digest('hex'));
+      }
+      const outputHash = hashes[0];
+      assert(hashes.every(hash => hash === outputHash),
+        '100 mocked @net.fetch runs have identical output+log hash (' + outputHash + ')');
+      console.log('       @net.fetch 100-run SHA-256:', outputHash);
+
+      const benchmark = createWorker({ ast: NET_FETCH_AST, seed: 7,
+        fetchImpl: async () => new Response('{"item":"ok"}', {
+          status: 201,
+          statusText: 'Created',
+          headers: { 'content-type': 'application/json', 'x-test': 'mocked' },
+        }) });
+      const N = 100;
+      for (let i = 0; i < 20; i++) await benchmark.fetch(get('http://x/net'));
+      const samples = [];
+      for (let batch = 0; batch < 100; batch++) {
+        const start = process.cpuUsage();
+        for (let i = 0; i < N; i++) await benchmark.fetch(get('http://x/net'));
+        const cpu = process.cpuUsage(start);
+        samples.push((cpu.user + cpu.system) / 1000 / N);
+      }
+      samples.sort((a, b) => a - b);
+      const p50 = samples[Math.floor((samples.length - 1) * 0.50)];
+      const p90 = samples[Math.floor((samples.length - 1) * 0.90)];
+      console.log('       @net.fetch mocked CPU p50/p90:', p50.toFixed(4), '/', p90.toFixed(4),
+        'ms/request (100 batches × ' + N + ' requests; process.cpuUsage user+system)');
+      assert(p50 < 10 && p90 < 10, '@net.fetch mocked CPU p50 and p90 < 10ms/request');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+    assert(unmockedFetchCalls === 0, '@net.fetch tests never call the runtime network');
   }
 }
 
