@@ -1,28 +1,23 @@
 # STATE.md (under 30 lines. now only. history -> LOG.md)
-updated: 2026-11-25 | by: Cue | rev: 13
+updated: 2026-11-25 | by: Cue | rev: 14
 ## Doing
 | id | task | status |
 |---|---|---|
 | T4 | Repeatable CPU benchmark; PR #14 | open |
-| T12 | Conditional PR auto-merge policy; PR #12 | open |
-| T21 | Measure Worker bundle and rendered Web output; target 20 KiB, max 50 KiB | PR #31 open |
-| FX-SET/NET | Finish issue #26 runtime effects: @net.fetch; PR #44 | open |
-| T18 | Browser Web runtime: Page/Input/Btn/P/Each | PR #32 open |
-| T19 | Ship pipeline; PR #33 | open |
+## Open — claimable
+| id | input → output | test | effort |
+|---|---|---|---|
+| T22 | `web.10ms` → `examples/hello.10ms` + parser assertion | `node tests/core/web.test.js` | newcomer ≤15 min |
+| T24 | `examples/hello.10ms` → short matching README example | `node tests/core/web.test.js`; compare sample | newcomer ≤15 min |
+| T25 | Web/Worker mirror output → exact assertions in existing test | `node tests/core/type-mirror.test.js` | newcomer ≤15 min |
 ## Done
-- T1 | Worker /echo validation, hit-log count, CPU test; PR #10 merged
-- T6a | SPEC v1/canonical forms, 7 effects/examples; PR #17 merged
-- T6b | D12-D21 and SPEC machine layer; PR #18 merged
-- T6c | Architecture guidance folded into AGENTS; PR #19 merged
-- T6d | STATE/LOG resynced; Worker test passed; avg 0.0982ms/request (100 requests)
-- T11 | Core lexer/parser/cost/seal/type/mirror; 3 core tests; 100-run output hash stable
+- Merged: T1 #10; T6a–e; T7 #27; T9 #29; T12 #12; FX-SET #30; T15 #22; T17 #24; T21 #31; T18 Web #32; T19 #33; runtime #43/#44.
+- Runtime effects 7/7 Done: `@store.get/add/del/set`, `@net.fetch`, `@time.now`, `@rand.int`; #44 merged at `a9e33f1`.
+- T21 Worker bundle 28.67 KiB: under 50 KiB cap; above 20 KiB target (NOT MET).
+- T11: core lexer/parser/cost/seal/type/mirror; three core tests; 100-run output stable.
+- 2-layer model: core parses/checks; host executes AST/effects; mirror renders read-only.
 - repo: github.com/shiba-108/10ms
-- 2-layer machine root / human translation; core pure, host executes AST, mirror renders
 ## Blocked
-- Pre-change token baseline unavailable; do not infer before/after delta
-- T13 | dropped; owner left; code in PR #15 superseded.
-## Next (proposed, lead confirms)
-- T6e | pending
-- T7 | error catalog: every error is data with an exact fix (P8)
-- T8 | first-try benchmark: AI gets only the spec; measure first-attempt success (P2, P5, P6)
-- T9 | determinism check: 100 runs, identical output hash (P4)
+- T20: runtime-effect scope awaits owner's decision.
+- Pre-change token baseline unavailable; do not infer before/after delta.
+- T13 dropped; owner left; code in PR #15 superseded.
