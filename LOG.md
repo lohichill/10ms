@@ -6,3 +6,4 @@
 2026-11-24 | Cue | PR #9: all 3 owner-specified gates passed; 3 test scripts + assertions, seal verification, 100-run hash stable; pre-change token baseline unavailable | cpu p50 0.01445ms / p90 0.05780ms
 2026-11-24 | Cue | fixed worker /echo body envelope; D13 seed + deterministic response tests; corrected log count to 123; all 4 required tests pass; PR #10 open for owner review, not merged | cpu avg 0.0993ms/request (100 requests, process.cpuUsage user+system, 9.93ms total)
 2026-11-25 | Cue | T6d: STATE resynced from origin/main; T1 and T6a-c confirmed merged, T6e pending; existing Worker test ALL PASSED | cpu avg 0.0982ms/request (100 requests, 9.82ms CPU total)
+2026-11-25 | Cue | T13 dropped; owner left; PR #15 code superseded; STATE updated | cpu p50 0.0940ms / p90 0.1092ms per request (100 batches x 100 GET /hits; existing Worker code, docs-only change)

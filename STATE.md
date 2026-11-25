@@ -1,5 +1,5 @@
 # STATE.md (under 30 lines. now only. history -> LOG.md)
-updated: 2026-11-25 | by: Cue | rev: 10
+updated: 2026-11-25 | by: Cue | rev: 11
 ## Doing
 | id | task | status |
 |---|---|---|
@@ -17,6 +17,7 @@ updated: 2026-11-25 | by: Cue | rev: 10
 ## Blocked
 - SPEC: 7 effects; runtime: 3 (@store.get/add/del). Missing @store.set/@net.fetch/@time.now/@rand.int.
 - Pre-change token baseline unavailable; do not infer before/after delta
+- T13 | dropped; owner left; code in PR #15 superseded.
 ## Next (proposed, lead confirms)
 - T6e | pending
 - T7 | error catalog: every error is data with an exact fix (P8)
