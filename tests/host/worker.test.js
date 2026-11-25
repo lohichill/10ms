@@ -92,6 +92,22 @@ const STORE_SET_AST = {
   ],
 };
 
+const TIME_RAND_AST = {
+  type: 'Program',
+  body: [{
+    type: 'On', method: 'GET', path: '/effects', body: [{
+      type: 'Reply', value: {
+        type: 'Object', entries: [
+          { key: 'now', value: { type: 'Effect', path: 'time.now', args: [] } },
+          { key: 'roll', value: { type: 'Effect', path: 'rand.int', args: [
+            { type: 'Number', value: 1 }, { type: 'Number', value: 6 },
+          ] } },
+        ],
+      },
+    }],
+  }],
+};
+
 function post(url, body) {
   return new Request(url, {
     method: 'POST',
@@ -311,6 +327,77 @@ on every 1h
     console.log('       @store.set CPU p50/p90:', p50.toFixed(4), '/', p90.toFixed(4),
       'ms/request (100 batches × ' + N + ' requests; process.cpuUsage user+system)');
     assert(p50 < 10 && p90 < 10, '@store.set CPU p50 and p90 < 10ms/request');
+  }
+
+  // --- 15. @time.now + @rand.int log outputs, replay, and keep P4 (D15) ---
+  {
+    const fixedTime = 1700000000123;
+    const originalNow = Date.now;
+    const hashes = [];
+    let firstBody;
+    let firstLog;
+    Date.now = () => fixedTime;
+    try {
+      for (let i = 0; i < 100; i++) {
+        const wEffects = createWorker({ ast: TIME_RAND_AST, seed: 314 });
+        const body = await (await wEffects.fetch(get('http://x/effects'))).json();
+        const entries = wEffects.log.snapshot();
+        if (i === 0) {
+          firstBody = body;
+          firstLog = entries;
+        }
+        const payload = JSON.stringify({ body, log: entries });
+        hashes.push(createHash('sha256').update(payload).digest('hex'));
+      }
+    } finally {
+      Date.now = originalNow;
+    }
+    const outputHash = hashes[0];
+    assert(firstBody.now === fixedTime && Number.isInteger(firstBody.roll) &&
+      firstBody.roll >= 1 && firstBody.roll <= 6,
+      '@time.now returns the clock value and @rand.int stays within inclusive bounds');
+    assert(firstLog[0].kind === 'time.now' && firstLog[0].args.length === 0 &&
+      firstLog[0].result === fixedTime && firstLog[1].kind === 'rand.int' &&
+      JSON.stringify(firstLog[1].args) === '[1,6]' && firstLog[1].result === firstBody.roll,
+      'both effect outputs are recorded with their inputs for D15 replay');
+    assert(hashes.every(hash => hash === outputHash),
+      '100 fresh runs with the same seed and clock have identical output+log hash (' + outputHash + ')');
+    console.log('       @time.now + @rand.int 100-run SHA-256:', outputHash);
+
+    const replayLog = createLog();
+    for (const entry of firstLog) replayLog.record(entry.kind, entry.args, entry.result);
+    const replay = replayLog.replay(drv => ({
+      now: drv.call('time.now', []),
+      roll: drv.call('rand.int', [1, 6]),
+    }), 314);
+    assert(JSON.stringify(replay.result) === JSON.stringify(firstBody) && replay.consumed === 2,
+      'the recorded time and seeded integer replay as the same output');
+
+    let invalidRange;
+    try { createWorker({ ast: TIME_RAND_AST, seed: 314 }).fx.call('rand.int', [6, 1]); }
+    catch (e) { invalidRange = e.detail; }
+    assert(invalidRange && invalidRange.error === 'effect' && invalidRange.seed === 314,
+      '@rand.int rejects reversed bounds with a seeded effect error');
+  }
+
+  // --- 16. @time.now + @rand.int real Worker CPU p50/p90 (P1) ---
+  {
+    const wEffects = createWorker({ ast: TIME_RAND_AST, seed: 314 });
+    const N = 100;
+    for (let i = 0; i < 20; i++) await wEffects.fetch(get('http://x/effects'));
+    const samples = [];
+    for (let batch = 0; batch < 100; batch++) {
+      const start = process.cpuUsage();
+      for (let i = 0; i < N; i++) await wEffects.fetch(get('http://x/effects'));
+      const cpu = process.cpuUsage(start);
+      samples.push((cpu.user + cpu.system) / 1000 / N);
+    }
+    samples.sort((a, b) => a - b);
+    const p50 = samples[Math.floor((samples.length - 1) * 0.50)];
+    const p90 = samples[Math.floor((samples.length - 1) * 0.90)];
+    console.log('       @time.now + @rand.int CPU p50/p90:', p50.toFixed(4), '/', p90.toFixed(4),
+      'ms/request (100 batches × ' + N + ' requests; process.cpuUsage user+system)');
+    assert(p50 < 10 && p90 < 10, '@time.now + @rand.int CPU p50 and p90 < 10ms/request');
   }
 }
 
