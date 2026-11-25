@@ -92,6 +92,27 @@ async function main() {
   }
   assert(repeated.every(value => value === '200:{"count":3}'),
     '100 repeated requests produce identical responses');
+
+  // Measure the largest accepted list; this is a Node CPU gate, not a Cloudflare measurement.
+  const maxItems = Array(100).fill(1);
+  const batchCpuMs = [];
+  for (let batch = 0; batch < 100; batch++) {
+    const start = process.cpuUsage();
+    for (let i = 0; i < 100; i++) {
+      const result = await worker.fetch(post(maxItems));
+      const resultBody = await result.json();
+      if (result.status !== 200 || resultBody.count !== 100) {
+        throw new Error('maximum-size request failed during CPU benchmark');
+      }
+    }
+    const used = process.cpuUsage(start);
+    batchCpuMs.push((used.user + used.system) / 100000);
+  }
+  batchCpuMs.sort((a, b) => a - b);
+  const p50 = batchCpuMs[49];
+  const p90 = batchCpuMs[89];
+  console.log(`Node CPU ms/request, 100-item input (100 batches × 100 requests): p50=${p50.toFixed(6)}, p90=${p90.toFixed(6)}`);
+  assert(p90 < 5, 'maximum-size example stays below the 5 ms Node CPU regression budget');
 }
 
 main().catch(error => {
