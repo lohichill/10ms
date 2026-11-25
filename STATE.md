@@ -1,28 +1,24 @@
 # STATE.md (under 30 lines. now only. history -> LOG.md)
-updated: 2026-11-24 | by: Cue | rev: 9
-
+updated: 2026-11-25 | by: Cue | rev: 10
 ## Doing
-| id | task | owner | branch |
-|---|---|---|---|
-| T6 | One-page spec: the language, the only home of syntax, examples are tests | Cue | agent/cue/T6 |
-| T1 | Worker /echo validation, hit-log count, CPU test; PR #10 awaiting owner review | Cue | fix/worker-echo-log |
-| T4 | Repeatable Node + Wrangler CPU benchmark; fixed seed, overhead, 5-run spread | Manus | agent/manus/T4 |
-
+| id | task | status |
+|---|---|---|
+| T4 | Repeatable CPU benchmark; PR #14 | open |
+| T12 | Conditional PR auto-merge policy; PR #12 | open |
 ## Done
-- Pivot v2 | 10ms = AI-native language. framework = first host. constitution P1-P8. 6 files rewritten timeless
-- T2 | machine layer -> README.md + DECISIONS.md
-- T3 | LOG.md created
-- SPEC.md | draft (T6 will finalize)
-- ARCHITECTURE.md | architecture map
-- T11 | core lexer/parser/cost/seal/type/mirror; 3 core tests and assertions pass; 100-run output hash stable; CPU p50 0.01445ms / p90 0.05780ms
+- T1 | Worker /echo validation, hit-log count, CPU test; PR #10 merged
+- T6a | SPEC v1/canonical forms, 7 effects/examples; PR #17 merged
+- T6b | D12-D21 and SPEC machine layer; PR #18 merged
+- T6c | Architecture guidance folded into AGENTS; PR #19 merged
+- T6d | STATE/LOG resynced; Worker test passed; avg 0.0982ms/request (100 requests)
+- T11 | Core lexer/parser/cost/seal/type/mirror; 3 core tests; 100-run output hash stable
 - repo: github.com/shiba-108/10ms
-- 2-layer architecture (machine root, human translation)
-
+- 2-layer machine root / human translation; core pure, host executes AST, mirror renders
 ## Blocked
-- Pre-change token baseline unavailable (no earlier implementation); do not infer a before/after delta
-
+- SPEC: 7 effects; runtime: 3 (@store.get/add/del). Missing @store.set/@net.fetch/@time.now/@rand.int.
+- Pre-change token baseline unavailable; do not infer before/after delta
 ## Next (proposed, lead confirms)
-- PR #10 -> owner review; do not merge until approved
+- T6e | pending
 - T7 | error catalog: every error is data with an exact fix (P8)
-- T8 | first-try benchmark: AI gets only the spec, measure programs correct on first attempt (P2, P5, P6)
+- T8 | first-try benchmark: AI gets only the spec; measure first-attempt success (P2, P5, P6)
 - T9 | determinism check: 100 runs, identical output hash (P4)
